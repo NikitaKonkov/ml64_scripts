@@ -1,0 +1,58 @@
+Diffusion:
+
+Example: DES (Data Encryption Standard)
+Mechanism: Transposition or Permutation
+Description: In DES, diffusion is achieved by rearranging the bits of the plaintext. 
+For instance, if the plaintext is "abcd", it could be rearranged to "dacb". 
+This spreads the influence of a single plaintext bit over many ciphertext bits, 
+ensuring that changing one bit of the plaintext changes many bits in the ciphertext, 
+which is a manifestation of the avalanche effect 12.
+Confusion:
+
+Example: Caesar Cipher
+Mechanism: Substitution
+Description: In the Caesar Cipher, each letter of the plaintext is replaced by another letter. 
+For example, with a shift of 1, 'A' becomes 'B', 'B' becomes 'C', and so on. 
+This method obscures the relationship between the ciphertext and the plaintext. 
+In more complex systems like AES, 
+confusion is implemented using non-linear substitution tables (S-boxes) 
+that are designed to obscure the relationship between the key and the ciphertext 12.
+
+
+#include <stdio.h>
+#include <string.h>
+
+// Function to demonstrate confusion using simple substitution
+void applyConfusion(char *text) {
+    for (int i = 0; i < strlen(text); i++) {
+        // Simple substitution: shift characters by 1
+        text[i] = text[i] + 1;
+    }
+}
+
+// Function to demonstrate diffusion using transposition (simple reversal here)
+void applyDiffusion(char *text) {
+    int n = strlen(text);
+    for (int i = 0; i < n / 2; i++) {
+        // Swap characters
+        char temp = text[i];
+        text[i] = text[n - i - 1];
+        text[n - i - 1] = temp;
+    }
+}
+
+int main() {
+    char text[] = "HelloWorld";
+
+    printf("Original text: %s\n", text);
+
+    // Apply confusion
+    applyConfusion(text);
+    printf("After confusion: %s\n", text);
+
+    // Apply diffusion
+    applyDiffusion(text);
+    printf("After diffusion: %s\n", text);
+
+    return 0;
+}

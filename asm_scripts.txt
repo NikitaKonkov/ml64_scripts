@@ -1,0 +1,233 @@
+################################################################################# Switch
+.data
+.code
+    main proc
+    mov rax, 0
+    mov rbx, 0
+    mov rcx, 0
+x:  
+    cmp rax, 0
+    je a
+    cmp rax, 10b
+    jl b
+    je c
+    jg d 
+a:
+    add rbx, 0
+    jmp _exit
+b:
+    add rbx, 1
+    jmp _exit
+c:
+    add rbx, 2
+    jmp _exit
+d:
+    add rbx, 3
+    jmp _exit
+
+    _exit:
+    inc rax
+
+    cmp rax, 100b
+    jl x
+
+    ret
+main endp
+end
+################################################################################## Decoder
+.data
+    AusgabeText BYTE 'ABCDEFGH Hallo Welt Was geht heute lasst unss Kinder fressen'
+	psw BYTE         '253813231997Monster25Monster25ter253813231997Monster25efewff'
+    Handle QWORD ?
+    geschrieben BYTE ?
+    len equ lengthof AusgabeText
+
+.code
+    main proc
+
+	mov rax, len
+    mov rcx, len
+    x:;first decoding level		
+    	ror byte ptr [ AusgabeText + rcx - 1 ], cl 
+        loop x
+    
+    xs:;second decoding level		
+    	mov cl, byte ptr [ psw + rax ] 
+    	ror byte ptr [ AusgabeText + rax - 1 ], cl 
+    	dec rax
+    	cmp rax, 0
+    	jne xs
+
+	mov rcx, len
+	xm:;third decoding level                                            
+		xor rdx, rdx
+		mov al, byte ptr [ psw + rcx ]  
+		mov rbx, len           
+		div rbx                 
+		mov al, byte ptr [ AusgabeText + rdx ]
+		mov bl, byte ptr [ AusgabeText + rcx - 1 ]
+		mov byte ptr [ AusgabeText + rcx - 1 ], al
+		mov byte ptr [ AusgabeText + rdx ], bl
+	loop xm
+
+	mov rcx, len
+	mov r8,1
+	ym:;third encoding level
+		xor rdx, rdx
+		mov al, byte ptr [ psw + r8 ]  
+		mov rbx, len           
+		div rbx                 
+		mov al, byte ptr [ AusgabeText + rdx ]
+		mov bl, byte ptr [ AusgabeText + r8 - 1 ]
+		mov byte ptr [ AusgabeText + rdx ], bl
+		mov byte ptr [ AusgabeText + r8 - 1 ], al
+		inc r8
+	loop ym
+
+	mov rax, len
+	ys:;second encoding level
+		mov cl, byte ptr [ psw + rax ] 
+		rol byte ptr [ AusgabeText + rax - 1 ], cl 
+		dec rax
+		cmp rax, 0
+		jne ys
+
+    mov rcx, len
+    y:;first encoding level
+		rol byte ptr [ AusgabeText + rcx - 1], cl 
+        loop y
+
+    ret
+main ENDP
+end
+####################################
+
+
+
+includelib kernel32.lib
+ExitProcess proto
+GetStdHandle proto
+ReadConsoleA proto
+deviceCode equ -10
+len equ 65536
+
+reg0 macro param
+	xor param, param
+endm
+
+.data
+    Eingabe byte len dup (?)  ; Increased buffer size for input
+    Textlaenge word ?        ; Changed to dword for length calculation
+
+.code
+main PROC
+    reg0 rax
+    xor rcx, rcx
+    xor rdx, rdx
+    xor r8, r8
+    xor r9, r9
+    xor rax, rax
+
+    sub rsp, 32               ; create shadow space
+
+    mov rcx, deviceCode       ; -10 Console input
+    call GetStdHandle
+
+    mov rcx, rax
+    lea rdx, Eingabe
+    mov r8, len               ; Maximum buffer size
+    lea r9, Textlaenge
+    call ReadConsoleA         ; Request input
+    add rsp, 32
+
+    ; Calculate the length of the input
+    lea rsi, Eingabe
+    xor rcx, rcx              ; Initialize length counter
+    find_length:
+        cmp byte ptr [rsi + rcx], 00Dh
+        je length_found
+        inc rcx
+        jmp find_length
+    length_found:
+        mov Textlaenge, cx       ; Store the length of the input
+
+
+    call ExitProcess
+main endp
+end
+
+##################################################################################################
+INCLUDELIB kernel32.lib
+ExitProcess PROTO
+GetStdHandle PROTO
+ReadConsoleA PROTO
+WriteConsoleA PROTO
+
+deviceCodeInput EQU -10   ; Windows Funktion -10 = Consolen Eingabe
+deviceCodeOutput EQU -11  ; Windows Funktion -11 = Consolen Ausgabe
+
+.data
+    Eingabe BYTE 256 DUP (?)  ; Buffer for input
+    Textlaenge DWORD ?        ; Length of the input text
+    geschrieben DWORD ?       ; Windows Variable for written output
+
+.code
+main proc
+    ; Clear registers
+    xor rcx, rcx
+    xor rdx, rdx
+    xor r8, r8
+    xor r9, r9
+    xor rax, rax
+    sub rsp, 32         ; Stack shadow space 4 * 8 Byte
+
+    ; Get handle for console input
+    mov rcx, deviceCodeInput
+    call GetStdHandle
+    mov rcx, rax        ; RCX (Handle for input)
+
+    ; Read input from console
+    lea rdx, Eingabe    ; RDX (Buffer for input)
+    mov r8d, 256        ; R8D (Buffer size, 32-bit)
+    lea r9, Textlaenge  ; R9 (Length of input text)
+    call ReadConsoleA
+
+
+	; Calculate the length of the input
+	lea rsi, Eingabe
+	xor rcx, rcx        ; Initialize length counter
+	find_length:
+		cmp byte ptr [rsi + rcx], 00Dh ; End of file byte
+		je length_found
+		inc rcx
+		jmp find_length
+	length_found:
+		mov Textlaenge, ecx  ; Store the length of the input
+
+    dec rcx
+    upmaker:  ; Upper all lower case characters
+        cmp byte ptr [rsi + rcx],57 ; Ignoring numbers and spaces
+        jbe exit
+        cmp byte ptr [rsi + rcx],97 ; Compare if the character is lowercase
+        jge upper
+        jmp exit
+        upper:
+            sub byte ptr [rsi + rcx], 32 ; Upper the lowercase character
+        exit:
+        loop upmaker
+    
+    ; Get handle for console output
+    mov rcx, deviceCodeOutput
+    call GetStdHandle
+    mov rcx, rax        ; RCX (Handle for output)
+
+    ; Write input to console
+    lea rdx, Eingabe    ; RDX (Buffer for input)
+    mov r8d, Textlaenge ; R8D (Length of input text, 32-bit)
+    lea r9, geschrieben ; R9 (Written output length)
+    call WriteConsoleA
+
+    add rsp, 32         ; Clean up stack shadow space
+    call ExitProcess
+main endp
+end
