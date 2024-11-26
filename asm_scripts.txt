@@ -174,10 +174,6 @@ deviceCodeOutput EQU -11  ; Windows Funktion -11 = Consolen Ausgabe
 .code
 main proc
     ; Clear registers
-    xor rcx, rcx
-    xor rdx, rdx
-    xor r8, r8
-    xor r9, r9
     xor rax, rax
     sub rsp, 32         ; Stack shadow space 4 * 8 Byte
 
